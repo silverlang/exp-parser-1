@@ -59,8 +59,8 @@ pub enum ExprKind {
     StrLiteral(String),
 }
 
-type ParserRule = fn(input: &[Token]) -> Option<(Node, &[Token])>;
-type GeneratedParserRule<'a> = Box<dyn Fn(&[Token]) -> Option<(Node, &[Token])> + 'a>;
+type RawParserRule = fn(input: &[Token]) -> Option<(Node, &[Token])>;
+type ParserRule<'a> = Box<dyn Fn(&[Token]) -> Option<(Node, &[Token])> + 'a>;
 
 pub fn parse(input: &[Token]) -> Node {
     Node {
@@ -97,7 +97,7 @@ fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
     Some((result, input))
 }
 
-const STMT_RULES: &[ParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
+const STMT_RULES: &[RawParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
 
 fn rule_return(input: &[Token]) -> Option<(Node, &[Token])> {
     let Some((_, input)) = ident_of_str("return")(input)
@@ -144,7 +144,7 @@ fn rule_expr(input: &[Token]) -> Option<(Node, &[Token])> {
     any(box_rules(EXPR_RULES))(input)
 }
 
-const EXPR_RULES: &[ParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
+const EXPR_RULES: &[RawParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
 
 fn rule_ident(input: &[Token]) -> Option<(Node, &[Token])> {
     let TokenKind::Identifier(name) = &input[0].kind
@@ -180,11 +180,11 @@ fn rule_intliteral(input: &[Token]) -> Option<(Node, &[Token])> {
     ))
 }
 
-fn any<'a>(rules: Vec<GeneratedParserRule<'a>>) -> GeneratedParserRule<'a> {
+fn any<'a>(rules: Vec<ParserRule<'a>>) -> ParserRule<'a> {
     Box::new(move |input| Some(rules.iter().find_map(|rule| rule(input))?))
 }
 
-fn ident_of_str(str: &str) -> GeneratedParserRule {
+fn ident_of_str(str: &str) -> ParserRule {
     Box::new(move |input| {
         let Some((expr, input)) = rule_ident(input)
         else { return None; };
@@ -211,10 +211,10 @@ fn consume_first<T>(arr: &[T]) -> &[T] {
     }
 }
 
-fn box_rule(rule: &'static ParserRule) -> GeneratedParserRule<'static> {
+fn box_rule(rule: &'static RawParserRule) -> ParserRule<'static> {
     Box::new(|input| rule(input))
 }
 
-fn box_rules(rules: &'static [ParserRule]) -> Vec<GeneratedParserRule<'static>> {
+fn box_rules(rules: &'static [RawParserRule]) -> Vec<ParserRule<'static>> {
     rules.into_iter().map(box_rule).collect::<Vec<_>>()
 }

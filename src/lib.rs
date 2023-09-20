@@ -156,7 +156,7 @@ fn stmt_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     Some((
         new_node_vec(NodeKind::Stmt(StmtKind::Assignment {
             name,
-            expr: nodes.last()?.clone(),
+            expr: nodes.into_iter().last()?,
             type_annotation,
         })),
         input,
@@ -169,7 +169,7 @@ fn stmt_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
     Some((
         new_node_vec(NodeKind::Stmt(StmtKind::ExprStmt {
-            expr: expr.first()?.clone(),
+            expr: expr.into_iter().nth(0)?,
         })),
         input,
     ))

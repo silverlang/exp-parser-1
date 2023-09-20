@@ -119,20 +119,33 @@ fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let TokenKind::Identifier(name) = &input.first()?.kind
+    let Some((nodes, input)) = sequence(vec![
+        Box::new(rule_ident),
+        optional(sequence(vec![
+            expect_token(TokenKind::Colon),
+            Box::new(rule_ident)
+        ])),
+        expect_token(TokenKind::Equals),
+        Box::new(rule_expr)
+    ])(input)
     else { return None; };
-    let input = consume_first(input);
 
-    let Some((_, input)) = expect_token(TokenKind::Equals)(input)
-    else { return None; };
+    let name = match *nodes.clone().into_iter().nth(0)?.kind {
+        NodeKind::Expr(kind) => match kind {
+            ExprKind::Identifier(name) => name,
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
+    }
+    .to_string();
 
     let Some((expr, input)) = rule_expr(input)
     else { return None; };
 
     Some((
         new_node_vec(NodeKind::Stmt(StmtKind::Assignment {
-            name: name.to_string(),
-            expr: expr.first()?.clone(),
+            name,
+            expr: nodes.last()?.clone(),
         })),
         input,
     ))

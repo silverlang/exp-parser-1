@@ -70,13 +70,13 @@ pub fn parse(input: &[Token]) -> Node {
 
 fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
     if input.len() == 0 {
-        return nodes.clone();
+        return nodes;
     }
 
     let stmt_res = rule_stmt(input);
 
     if stmt_res.is_none() {
-        return nodes.clone();
+        return nodes;
     }
 
     let (node, input) = stmt_res.unwrap();

@@ -131,10 +131,14 @@ pub enum PrefixOp {
 
 #[derive(Debug, Clone)]
 pub enum InfixOp {
-    /// -
-    Minus,
     /// +
     Plus,
+    /// -
+    Minus,
+    /// *
+    Multiply,
+    /// /
+    Divide,
 }
 
 type RawParserRule = fn(input: &[Token]) -> Option<(Vec<Node>, &[Token])>;

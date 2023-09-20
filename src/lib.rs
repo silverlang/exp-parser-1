@@ -87,7 +87,7 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
 }
 
 fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
-    let Some((result, input)) = rule_any(STMT_RULES)(input)
+    let Some((result, input)) = any(STMT_RULES)(input)
     else { return None; };
 
     let TokenKind::NewLine = input[0].kind
@@ -100,7 +100,7 @@ fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
 const STMT_RULES: &[ParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
 
 fn rule_return(input: &[Token]) -> Option<(Node, &[Token])> {
-    let Some((_, input)) = rule_ident_of_str("return")(input)
+    let Some((_, input)) = ident_of_str("return")(input)
     else { return None; };
 
     let Some((expr, input)) = rule_expr(input)
@@ -141,7 +141,7 @@ fn rule_expr_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
 }
 
 fn rule_expr(input: &[Token]) -> Option<(Node, &[Token])> {
-    rule_any(EXPR_RULES)(input)
+    any(EXPR_RULES)(input)
 }
 
 const EXPR_RULES: &[ParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
@@ -180,11 +180,11 @@ fn rule_intliteral(input: &[Token]) -> Option<(Node, &[Token])> {
     ))
 }
 
-fn rule_any(rules: &[ParserRule]) -> GeneratedParserRule {
+fn any(rules: &[ParserRule]) -> GeneratedParserRule {
     Box::new(move |input| Some(rules.into_iter().find_map(|rule| rule(input))?))
 }
 
-fn rule_ident_of_str(str: &str) -> GeneratedParserRule {
+fn ident_of_str(str: &str) -> GeneratedParserRule {
     Box::new(move |input| {
         let Some((expr, input)) = rule_ident(input)
         else { return None; };

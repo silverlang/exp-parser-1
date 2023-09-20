@@ -53,8 +53,12 @@ impl Node {
     }
 }
 
-fn node_vec(kind: NodeKind) -> Vec<Node> {
-    vec![Node::from(kind)]
+fn node_stmt(kind: StmtKind) -> Vec<Node> {
+    vec![Node::from(NodeKind::Stmt(kind))]
+}
+
+fn node_expr(kind: ExprKind) -> Vec<Node> {
+    vec![Node::from(NodeKind::Expr(kind))]
 }
 
 #[derive(Debug, Clone)]
@@ -145,9 +149,9 @@ fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        node_vec(NodeKind::Stmt(StmtKind::Return {
+        node_stmt(StmtKind::Return {
             expr: nodes.into_iter().nth(1)?,
-        })),
+        }),
         input,
     ))
 }
@@ -180,11 +184,11 @@ fn stmt_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     };
 
     Some((
-        node_vec(NodeKind::Stmt(StmtKind::Assignment {
+        node_stmt(StmtKind::Assignment {
             name,
             expr: nodes.into_iter().last()?,
             type_annotation,
-        })),
+        }),
         input,
     ))
 }
@@ -194,9 +198,9 @@ fn stmt_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        node_vec(NodeKind::Stmt(StmtKind::ExprStmt {
+        node_stmt(StmtKind::ExprStmt {
             expr: expr.into_iter().nth(0)?,
-        })),
+        }),
         input,
     ))
 }
@@ -211,10 +215,10 @@ fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        node_vec(NodeKind::Stmt(StmtKind::While {
+        node_stmt(StmtKind::While {
             expr: nodes.clone().into_iter().nth(1)?,
             block: nodes.into_iter().nth(2)?,
-        })),
+        }),
         input,
     ))
 }
@@ -235,11 +239,11 @@ fn stmt_if(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        node_vec(NodeKind::Stmt(StmtKind::If {
+        node_stmt(StmtKind::If {
             condition: nodes.clone().into_iter().nth(1)?,
             consequent: nodes.clone().into_iter().nth(2)?,
             alternative: nodes.into_iter().nth(4),
-        })),
+        }),
         input,
     ))
 }
@@ -253,10 +257,7 @@ fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ])(input)
     else { return None; };
 
-    Some((
-        node_vec(NodeKind::Stmt(StmtKind::Block { statements: nodes })),
-        input,
-    ))
+    Some((node_stmt(StmtKind::Block { statements: nodes }), input))
 }
 
 fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
@@ -270,10 +271,7 @@ fn expr_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
     let input = consume_first(input);
 
-    Some((
-        node_vec(NodeKind::Expr(ExprKind::Identifier(name.to_string()))),
-        input,
-    ))
+    Some((node_expr(ExprKind::Identifier(name.to_string())), input))
 }
 
 fn expr_strlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
@@ -281,10 +279,7 @@ fn expr_strlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
     let input = consume_first(input);
 
-    Some((
-        node_vec(NodeKind::Expr(ExprKind::StrLiteral(string.to_string()))),
-        input,
-    ))
+    Some((node_expr(ExprKind::StrLiteral(string.to_string())), input))
 }
 
 fn expr_intlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
@@ -293,10 +288,7 @@ fn expr_intlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let input = consume_first(input);
 
     let number: u32 = int.parse().unwrap();
-    Some((
-        node_vec(NodeKind::Expr(ExprKind::IntLiteral(number))),
-        input,
-    ))
+    Some((node_expr(ExprKind::IntLiteral(number)), input))
 }
 
 fn any<'a>(rules: Vec<ParserRule<'a>>) -> ParserRule<'a> {

@@ -2,14 +2,26 @@
 //
 // Program ::= { Statement } ;
 //
-// Statement ::= ( Assign | Return | ExprStatement ) , NewLine ;
+//
+// Statements ::= Statement , { Statement } ;
+// Statement ::= SimpleStatement , NewLine | CompoundStatement ;
+//
+// SimpleStatement ::= Assign | Return | ExprStatement ;
+// CompoundStatement ::= WhileStatement ;
+//
 // Assign ::= Ident , [ ":" , Expr ] , "=" , Expr ;
 // Return ::= "return" , Expr ;
 // ExprStatement ::= Expr ;
 //
+// WhileStatement ::= "while" , Expr , ":" , Block ;
+//
+// Block ::= NewLine , Indent , Statements , Dedent ;
+//
+//
 // Expr ::= Identifier | IntegerLiteral | StringLiteral ;
 // Identifier ::= ( letter | "_" ) , { letter | "_" | digit } ;
 // IntegerLiteral ::= Digit , { Digit } ;
+//
 //
 // NewLine ::= "\n" ;
 // Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
@@ -62,6 +74,13 @@ pub enum StmtKind {
     ExprStmt {
         expr: Node,
     },
+    While {
+        expr: Node,
+        block: Node,
+    },
+    Block {
+        statements: Vec<Node>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -99,16 +118,20 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
 }
 
 fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let Some((nodes, input)) = sequence(vec![
-        any(box_rules(STMT_RULES)),
-        expect_token(TokenKind::NewLine)
+    let Some((nodes, input)) = any(vec![
+        sequence(vec![
+            any(box_rules(SIMPLE_STMT_RULES)),
+            expect_token(TokenKind::NewLine)
+        ]),
+        any(box_rules(COMPOUND_STMT_RULES))
     ])(input)
     else { return None; };
 
     Some((vec![nodes.into_iter().nth(0)?], input))
 }
 
-const STMT_RULES: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];
+const SIMPLE_STMT_RULES: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];
+const COMPOUND_STMT_RULES: &[RawParserRule] = &[stmt_while];
 
 fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
@@ -171,6 +194,39 @@ fn stmt_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
         new_node_vec(NodeKind::Stmt(StmtKind::ExprStmt {
             expr: expr.into_iter().nth(0)?,
         })),
+        input,
+    ))
+}
+
+fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+    let Some((nodes, input)) = sequence(vec![
+        expr_ident_with_name("while"),
+        Box::new(expr),
+        expect_token(TokenKind::Colon),
+        Box::new(stmt_block),
+    ])(input)
+    else { return None; };
+
+    Some((
+        new_node_vec(NodeKind::Stmt(StmtKind::While {
+            expr: nodes.clone().into_iter().nth(1)?,
+            block: nodes.into_iter().nth(2)?,
+        })),
+        input,
+    ))
+}
+
+fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+    let Some((nodes, input)) = sequence(vec![
+        expect_token(TokenKind::NewLine),
+        expect_token(TokenKind::Indent),
+        collect_until_no_match(Box::new(stmt)),
+        expect_token(TokenKind::Dedent),
+    ])(input)
+    else { return None; };
+
+    Some((
+        new_node_vec(NodeKind::Stmt(StmtKind::Block { statements: nodes })),
         input,
     ))
 }
@@ -273,6 +329,27 @@ fn expr_ident_with_name(str: &str) -> ParserRule {
 
         Some((expr, input))
     })
+}
+
+fn collect_until_no_match(rule: ParserRule) -> ParserRule {
+    Box::new(move |input| collect_until_no_match_body(input, &rule, Vec::new()))
+}
+
+fn collect_until_no_match_body<'a>(
+    input: &'a [Token],
+    rule: &ParserRule,
+    nodes: Vec<Node>,
+) -> Option<(Vec<Node>, &'a [Token])> {
+    if input.len() == 0 {
+        return Some((nodes, input));
+    }
+
+    let Some((new_nodes, input)) = rule(input)
+    else { return Some((nodes, input)); };
+
+    let nodes = [nodes, new_nodes].concat();
+
+    collect_until_no_match_body(input, rule, nodes)
 }
 
 fn consume_first<T>(arr: &[T]) -> &[T] {

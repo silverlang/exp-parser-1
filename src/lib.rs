@@ -122,7 +122,7 @@ const COMPOUND_STMT_RULES: &[RawParserRule] = &[stmt_while];
 
 fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
-        expr_ident_with_name("return"),
+        named_ident("return"),
         wrap(expr)
       ]
     )(input)
@@ -187,7 +187,7 @@ fn stmt_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
 fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
-        expr_ident_with_name("while"),
+        named_ident("while"),
         wrap(expr),
         token(TokenKind::Colon),
         wrap(stmt_block),
@@ -299,7 +299,7 @@ fn optional(rule: ParserRule) -> ParserRule {
     Box::new(move |input| Some(rule(input).unwrap_or((Vec::new(), input))))
 }
 
-fn expr_ident_with_name(str: &str) -> ParserRule {
+fn named_ident(str: &str) -> ParserRule {
     Box::new(move |input| {
         let Some((expr, input)) = expr_ident(input)
         else { return None; };

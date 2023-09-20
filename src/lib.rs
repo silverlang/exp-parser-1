@@ -103,15 +103,16 @@ fn rule_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 const STMT_RULES: &[RawParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
 
 fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let Some((_, input)) = ident_with_name("return")(input)
-    else { return None; };
-
-    let Some((expr, input)) = rule_expr(input)
+    let Some((nodes, input)) = sequence(vec![
+        ident_with_name("return"),
+        Box::new(rule_expr)
+      ]
+    )(input)
     else { return None; };
 
     Some((
         new_node_vec(NodeKind::Stmt(StmtKind::Return {
-            expr: expr.first()?.clone(),
+            expr: nodes.iter().nth(1)?.clone(),
         })),
         input,
     ))
@@ -204,8 +205,26 @@ fn expect_token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
     })
 }
 
-fn optional(rule: ParserRule) -> ParserRule {
-    Box::new(move |input| Some(rule(input).unwrap_or((Vec::new(), input))))
+fn sequence<'a>(rules: Vec<ParserRule<'a>>) -> ParserRule<'a> {
+    Box::new(move |input| sequence_body(input, &rules, Vec::new()))
+}
+
+fn sequence_body<'a>(
+    input: &'a [Token],
+    rules: &[ParserRule],
+    nodes: Vec<Node>,
+) -> Option<(Vec<Node>, &'a [Token])> {
+    if rules.len() == 0 {
+        return Some((nodes, input));
+    }
+
+    let Some((new_nodes, input)) = rules.first()?(input)
+    else { return None; };
+
+    let rules = consume_first(rules);
+    let nodes = [nodes, new_nodes].concat();
+
+    sequence_body(input, rules, nodes)
 }
 
 fn optional(rule: ParserRule) -> ParserRule {

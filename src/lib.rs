@@ -295,8 +295,6 @@ fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = base_expr(input)
     else { return None; };
 
-    println!("expr nodes: {:#?}", nodes);
-
     bin_op(&nodes.into_iter().nth(0)?)(input)
 }
 
@@ -320,14 +318,11 @@ fn bin_op<'a>(node: &'a Node) -> ParserRule<'a> {
             return Some((vec![node.to_owned()], input));
         }
 
-        println!("bin_op nodes: {:#?}", nodes);
-
         Some((vec![attach_nodes(node.clone(), &nodes)], input))
     })
 }
 
 fn attach_nodes(node: Node, nodes: &[Node]) -> Node {
-    println!("{:#?}", nodes);
     let node = Node::from(NodeKind::Expr(ExprKind::Infix {
         operator: InfixOp::Plus,
         left: node.to_owned(),

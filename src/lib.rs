@@ -94,9 +94,8 @@ fn rule_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((stmt, input)) = any(box_rules(STMT_RULES))(input)
     else { return None; };
 
-    let TokenKind::NewLine = input[0].kind
+    let Some((_, input)) = expect_token(TokenKind::NewLine)(input)
     else { return None; };
-    let input = consume_first(input);
 
     Some((stmt, input))
 }
@@ -123,9 +122,8 @@ fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
     let input = consume_first(input);
 
-    let TokenKind::Equals = input[0].kind
+    let Some((_, input)) = expect_token(TokenKind::Equals)(input)
     else { return None; };
-    let input = consume_first(input);
 
     let Some((expr, input)) = rule_expr(input)
     else { return None; };
@@ -193,6 +191,17 @@ fn rule_intliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
 fn any<'a>(rules: Vec<ParserRule<'a>>) -> ParserRule<'a> {
     Box::new(move |input| Some(rules.iter().find_map(|rule| rule(input))?))
+}
+
+fn expect_token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
+    Box::new(move |input| {
+        if token_kind != input.first()?.kind {
+            return None;
+        }
+        let input = consume_first(input);
+
+        Some((Vec::new(), input))
+    })
 }
 
 fn ident_of_str(str: &str) -> ParserRule {

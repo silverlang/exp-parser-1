@@ -179,7 +179,7 @@ fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     any(box_rules(EXPR_RULES))(input)
 }
 
-const EXPR_RULES: &[RawParserRule] = &[expr_ident, expr_intliteral, expr_stringliteral];
+const EXPR_RULES: &[RawParserRule] = &[expr_ident, expr_intlit, expr_strlit];
 
 fn expr_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::Identifier(name) = &input.first()?.kind
@@ -192,7 +192,7 @@ fn expr_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn expr_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn expr_strlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::StringLiteral(string) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
@@ -203,7 +203,7 @@ fn expr_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn expr_intliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn expr_intlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::IntegerLiteral(int) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);

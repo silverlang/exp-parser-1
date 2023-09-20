@@ -85,7 +85,7 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
         return nodes;
     }
 
-    let stmt_res = rule_stmt(input);
+    let stmt_res = stmt(input);
 
     if stmt_res.is_none() {
         return nodes;
@@ -98,7 +98,7 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
     parse_body(input, nodes)
 }
 
-fn rule_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((stmt, input)) = any(box_rules(STMT_RULES))(input)
     else { return None; };
 
@@ -108,12 +108,12 @@ fn rule_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     Some((stmt, input))
 }
 
-const STMT_RULES: &[RawParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
+const STMT_RULES: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];
 
-fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
-        ident_with_name("return"),
-        Box::new(rule_expr)
+        expr_ident_with_name("return"),
+        Box::new(expr)
       ]
     )(input)
     else { return None; };
@@ -126,15 +126,15 @@ fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn stmt_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
-        Box::new(rule_ident),
+        Box::new(expr_ident),
         optional(sequence(vec![
             expect_token(TokenKind::Colon),
-            Box::new(rule_expr)
+            Box::new(expr)
         ])),
         expect_token(TokenKind::Equals),
-        Box::new(rule_expr)
+        Box::new(expr)
     ])(input)
     else { return None; };
 
@@ -163,8 +163,8 @@ fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn rule_expr_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let Some((expr, input)) = rule_expr(input)
+fn stmt_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+    let Some((expr, input)) = expr(input)
     else { return None; };
 
     Some((
@@ -175,13 +175,13 @@ fn rule_expr_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn rule_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     any(box_rules(EXPR_RULES))(input)
 }
 
-const EXPR_RULES: &[RawParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
+const EXPR_RULES: &[RawParserRule] = &[expr_ident, expr_intliteral, expr_stringliteral];
 
-fn rule_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn expr_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::Identifier(name) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
@@ -192,7 +192,7 @@ fn rule_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn rule_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn expr_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::StringLiteral(string) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
@@ -203,7 +203,7 @@ fn rule_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     ))
 }
 
-fn rule_intliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+fn expr_intliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::IntegerLiteral(int) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
@@ -256,9 +256,9 @@ fn optional(rule: ParserRule) -> ParserRule {
     Box::new(move |input| Some(rule(input).unwrap_or((Vec::new(), input))))
 }
 
-fn ident_with_name(str: &str) -> ParserRule {
+fn expr_ident_with_name(str: &str) -> ParserRule {
     Box::new(move |input| {
-        let Some((expr, input)) = rule_ident(input)
+        let Some((expr, input)) = expr_ident(input)
         else { return None; };
 
         let NodeKind::Expr(expr_kind) = &(*expr.first()?.clone().kind)

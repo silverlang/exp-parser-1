@@ -93,28 +93,12 @@ pub enum ExprKind {
 type RawParserRule = fn(input: &[Token]) -> Option<(Vec<Node>, &[Token])>;
 type ParserRule<'a> = Box<dyn Fn(&[Token]) -> Option<(Vec<Node>, &[Token])> + 'a>;
 
-pub fn parse(input: &[Token]) -> Node {
-    Node {
-        kind: Box::new(NodeKind::Program(parse_body(input, Vec::new()))),
-    }
-}
-
-fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
-    if input.len() == 0 {
-        return nodes;
-    }
-
-    let stmt_res = stmt(input);
-
-    if stmt_res.is_none() {
-        return nodes;
-    }
-
-    let (node, input) = stmt_res.unwrap();
-
-    let nodes = [nodes, node].concat();
-
-    parse_body(input, nodes)
+pub fn parse(input: &[Token]) -> Option<Node> {
+    Some(Node {
+        kind: Box::new(NodeKind::Program(
+            collect_until_no_match(Box::new(stmt))(input)?.0,
+        )),
+    })
 }
 
 fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {

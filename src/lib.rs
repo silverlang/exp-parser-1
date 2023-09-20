@@ -102,12 +102,15 @@ pub fn parse(input: &[Token]) -> Option<Node> {
 }
 
 fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let Some((nodes, input)) = any(vec![
-        sequence(vec![
-            any(box_rules(SIMPLE_STMT_RULES)),
-            token(TokenKind::NewLine)
+    let Some((nodes, input)) = sequence(vec![
+        any(vec![
+            sequence(vec![
+                any(box_rules(SIMPLE_STMT_RULES)),
+                token(TokenKind::NewLine)
+            ]),
+            any(box_rules(COMPOUND_STMT_RULES))
         ]),
-        any(box_rules(COMPOUND_STMT_RULES))
+        optional(collect_until_no_match(token(TokenKind::NL)))
     ])(input)
     else { return None; };
 

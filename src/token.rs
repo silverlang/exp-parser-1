@@ -14,6 +14,8 @@ pub enum TokenKind {
     /// \n
     NewLine,
 
+    NL,
+
     Indent,
 
     Dedent,

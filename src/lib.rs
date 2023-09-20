@@ -87,14 +87,14 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
 }
 
 fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
-    let Some((result, input)) = any(box_rules(STMT_RULES))(input)
+    let Some((stmt, input)) = any(box_rules(STMT_RULES))(input)
     else { return None; };
 
     let TokenKind::NewLine = input[0].kind
     else { return None; };
     let input = consume_first(input);
 
-    Some((result, input))
+    Some((stmt, input))
 }
 
 const STMT_RULES: &[RawParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];

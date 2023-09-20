@@ -204,6 +204,14 @@ fn expect_token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
     })
 }
 
+fn optional(rule: ParserRule) -> ParserRule {
+    Box::new(move |input| Some(rule(input).unwrap_or((Vec::new(), input))))
+}
+
+fn optional(rule: ParserRule) -> ParserRule {
+    Box::new(move |input| Some(rule(input).unwrap_or((Vec::new(), input))))
+}
+
 fn ident_with_name(str: &str) -> ParserRule {
     Box::new(move |input| {
         let Some((expr, input)) = rule_ident(input)

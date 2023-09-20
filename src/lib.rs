@@ -121,7 +121,7 @@ fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = any(vec![
         sequence(vec![
             any(box_rules(SIMPLE_STMT_RULES)),
-            expect_token(TokenKind::NewLine)
+            token(TokenKind::NewLine)
         ]),
         any(box_rules(COMPOUND_STMT_RULES))
     ])(input)
@@ -153,10 +153,10 @@ fn stmt_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
         Box::new(expr_ident),
         optional(sequence(vec![
-            expect_token(TokenKind::Colon),
+            token(TokenKind::Colon),
             Box::new(expr)
         ])),
-        expect_token(TokenKind::Equals),
+        token(TokenKind::Equals),
         Box::new(expr)
     ])(input)
     else { return None; };
@@ -202,7 +202,7 @@ fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
         expr_ident_with_name("while"),
         Box::new(expr),
-        expect_token(TokenKind::Colon),
+        token(TokenKind::Colon),
         Box::new(stmt_block),
     ])(input)
     else { return None; };
@@ -218,10 +218,10 @@ fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
 fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
-        expect_token(TokenKind::NewLine),
-        expect_token(TokenKind::Indent),
+        token(TokenKind::NewLine),
+        token(TokenKind::Indent),
         collect_until_no_match(Box::new(stmt)),
-        expect_token(TokenKind::Dedent),
+        token(TokenKind::Dedent),
     ])(input)
     else { return None; };
 
@@ -275,7 +275,7 @@ fn any<'a>(rules: Vec<ParserRule<'a>>) -> ParserRule<'a> {
     Box::new(move |input| Some(rules.iter().find_map(|rule| rule(input))?))
 }
 
-fn expect_token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
+fn token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
     Box::new(move |input| {
         if token_kind != input.first()?.kind {
             return None;

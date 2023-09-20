@@ -109,18 +109,18 @@ pub enum ExprKind {
     IntLiteral(u32),
     StrLiteral(String),
     Prefix {
-        kind: PrefixKind,
+        operator: PrefixOp,
         expr: Node,
     },
     Infix {
-        kind: InfixKind,
+        operator: InfixOp,
         left: Node,
         right: Node,
     },
 }
 
 #[derive(Debug, Clone)]
-pub enum PrefixKind {
+pub enum PrefixOp {
     /// -
     Minus,
     /// +
@@ -130,7 +130,7 @@ pub enum PrefixKind {
 }
 
 #[derive(Debug, Clone)]
-pub enum InfixKind {
+pub enum InfixOp {
     /// -
     Minus,
     /// +
@@ -295,10 +295,10 @@ const EXPRS: &[RawParserRule] = &[expr_ident, expr_intlit, expr_strlit, expr_pre
 
 fn expr_prefix(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     // TODO: Find a way to combinatorize this
-    let kind = match input.first()?.kind {
-        TokenKind::Minus => PrefixKind::Minus,
-        TokenKind::Plus => PrefixKind::Plus,
-        TokenKind::Tilde => PrefixKind::Invert,
+    let operator = match input.first()?.kind {
+        TokenKind::Minus => PrefixOp::Minus,
+        TokenKind::Plus => PrefixOp::Plus,
+        TokenKind::Tilde => PrefixOp::Invert,
         _ => return None,
     };
     let input = consume_first(input);
@@ -308,7 +308,7 @@ fn expr_prefix(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
     Some((
         node_expr(ExprKind::Prefix {
-            kind,
+            operator,
             expr: nodes.into_iter().nth(0)?,
         }),
         input,

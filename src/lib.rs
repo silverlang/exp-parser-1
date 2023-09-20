@@ -99,13 +99,13 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
 }
 
 fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let Some((stmt, input)) = any(box_rules(STMT_RULES))(input)
+    let Some((nodes, input)) = sequence(vec![
+        any(box_rules(STMT_RULES)),
+        expect_token(TokenKind::NewLine)
+    ])(input)
     else { return None; };
 
-    let Some((_, input)) = expect_token(TokenKind::NewLine)(input)
-    else { return None; };
-
-    Some((stmt, input))
+    Some((vec![nodes.into_iter().nth(0)?], input))
 }
 
 const STMT_RULES: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];

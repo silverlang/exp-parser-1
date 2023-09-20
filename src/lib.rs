@@ -105,10 +105,10 @@ fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
         any(vec![
             sequence(vec![
-                any(box_rules(SIMPLE_STMT_RULES)),
+                any(wrap_many(SIMPLE_STMT_RULES)),
                 token(TokenKind::NewLine)
             ]),
-            any(box_rules(COMPOUND_STMT_RULES))
+            any(wrap_many(COMPOUND_STMT_RULES))
         ]),
         optional(collect_until_no_match(token(TokenKind::NL)))
     ])(input)
@@ -219,7 +219,7 @@ fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    any(box_rules(EXPR_RULES))(input)
+    any(wrap_many(EXPR_RULES))(input)
 }
 
 const EXPR_RULES: &[RawParserRule] = &[expr_ident, expr_intlit, expr_strlit];
@@ -352,10 +352,10 @@ fn wrap<'a>(rule: RawParserRule) -> ParserRule<'a> {
     Box::new(rule)
 }
 
-fn map_fn_box_rule(rule: &'static RawParserRule) -> ParserRule<'static> {
-    Box::new(rule)
+fn wrap_many(rules: &'static [RawParserRule]) -> Vec<ParserRule<'static>> {
+    rules.into_iter().map(map_for_wrap_many).collect::<Vec<_>>()
 }
 
-fn box_rules(rules: &'static [RawParserRule]) -> Vec<ParserRule<'static>> {
-    rules.into_iter().map(map_fn_box_rule).collect::<Vec<_>>()
+fn map_for_wrap_many(rule: &'static RawParserRule) -> ParserRule<'static> {
+    Box::new(rule)
 }

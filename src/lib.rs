@@ -3,7 +3,7 @@
 // Program ::= { Statement } ;
 //
 // Statement ::= ( Assign | Return | ExprStatement ) , NewLine ;
-// Assign ::= Ident , "=" , Expr ;
+// Assign ::= Ident , [ ":" , Expr ] , "=" , Expr ;
 // Return ::= "return" , Expr ;
 // ExprStatement ::= Expr ;
 //
@@ -51,9 +51,17 @@ pub enum NodeKind {
 
 #[derive(Debug, Clone)]
 pub enum StmtKind {
-    Assignment { name: String, expr: Node },
-    Return { expr: Node },
-    ExprStmt { expr: Node },
+    Assignment {
+        name: String,
+        expr: Node,
+        type_annotation: Option<Node>,
+    },
+    Return {
+        expr: Node,
+    },
+    ExprStmt {
+        expr: Node,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -123,7 +131,7 @@ fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
         Box::new(rule_ident),
         optional(sequence(vec![
             expect_token(TokenKind::Colon),
-            Box::new(rule_ident)
+            Box::new(rule_expr)
         ])),
         expect_token(TokenKind::Equals),
         Box::new(rule_expr)
@@ -139,13 +147,17 @@ fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     }
     .to_string();
 
-    let Some((expr, input)) = rule_expr(input)
-    else { return None; };
+    let type_annotation = if nodes.len() == 3 {
+        Some(nodes.clone().into_iter().nth(1)?)
+    } else {
+        None
+    };
 
     Some((
         new_node_vec(NodeKind::Stmt(StmtKind::Assignment {
             name,
             expr: nodes.last()?.clone(),
+            type_annotation,
         })),
         input,
     ))

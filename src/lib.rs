@@ -103,7 +103,7 @@ fn rule_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 const STMT_RULES: &[RawParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
 
 fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let Some((_, input)) = ident_of_str("return")(input)
+    let Some((_, input)) = ident_with_name("return")(input)
     else { return None; };
 
     let Some((expr, input)) = rule_expr(input)
@@ -204,7 +204,7 @@ fn expect_token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
     })
 }
 
-fn ident_of_str(str: &str) -> ParserRule {
+fn ident_with_name(str: &str) -> ParserRule {
     Box::new(move |input| {
         let Some((expr, input)) = rule_ident(input)
         else { return None; };

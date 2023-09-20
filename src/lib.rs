@@ -118,7 +118,7 @@ fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let TokenKind::Identifier(name) = &input[0].kind
+    let TokenKind::Identifier(name) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
 
@@ -156,7 +156,7 @@ fn rule_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 const EXPR_RULES: &[RawParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
 
 fn rule_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let TokenKind::Identifier(name) = &input[0].kind
+    let TokenKind::Identifier(name) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
 
@@ -167,7 +167,7 @@ fn rule_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn rule_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let TokenKind::StringLiteral(string) = &input[0].kind
+    let TokenKind::StringLiteral(string) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
 
@@ -178,7 +178,7 @@ fn rule_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn rule_intliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    let TokenKind::IntegerLiteral(int) = &input[0].kind
+    let TokenKind::IntegerLiteral(int) = &input.first()?.kind
     else { return None; };
     let input = consume_first(input);
 

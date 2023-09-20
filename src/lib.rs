@@ -87,7 +87,7 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
 }
 
 fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
-    let Some((result, input)) = STMT_RULES.into_iter().find_map(|rule| rule(input))
+    let Some((result, input)) = rule_any(STMT_RULES)(input)
     else { return None; };
 
     let TokenKind::NewLine = input[0].kind
@@ -141,7 +141,7 @@ fn rule_expr_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
 }
 
 fn rule_expr(input: &[Token]) -> Option<(Node, &[Token])> {
-    Some(EXPR_RULES.into_iter().find_map(|rule| rule(input))?)
+    rule_any(EXPR_RULES)(input)
 }
 
 const EXPR_RULES: &[ParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
@@ -178,6 +178,10 @@ fn rule_intliteral(input: &[Token]) -> Option<(Node, &[Token])> {
         Node::from(NodeKind::Expr(ExprKind::IntLiteral(number))),
         input,
     ))
+}
+
+fn rule_any(rules: &[ParserRule]) -> GeneratedParserRule {
+    Box::new(move |input| Some(rules.into_iter().find_map(|rule| rule(input))?))
 }
 
 fn rule_ident_of_str(str: &str) -> GeneratedParserRule {

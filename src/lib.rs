@@ -120,7 +120,7 @@ fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
     Some((
         new_node_vec(NodeKind::Stmt(StmtKind::Return {
-            expr: nodes.iter().nth(1)?.clone(),
+            expr: nodes.into_iter().nth(1)?,
         })),
         input,
     ))

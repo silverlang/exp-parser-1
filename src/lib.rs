@@ -82,7 +82,7 @@ pub enum StmtKind {
         expr: Node,
     },
     While {
-        expr: Node,
+        condition_expr: Node,
         block: Node,
     },
     If {
@@ -216,7 +216,7 @@ fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
     Some((
         node_stmt(StmtKind::While {
-            expr: nodes.clone().into_iter().nth(1)?,
+            condition_expr: nodes.clone().into_iter().nth(1)?,
             block: nodes.into_iter().nth(2)?,
         }),
         input,

@@ -7,12 +7,15 @@
 // Statement ::= SimpleStatement , NewLine | CompoundStatement ;
 //
 // SimpleStatement ::= Assign | Return | ExprStatement ;
-// CompoundStatement ::= WhileStatement ;
+// CompoundStatement ::= IfStatement | WhileStatement ;
 //
 // Assign ::= Ident , [ ":" , Expr ] , "=" , Expr ;
 // Return ::= "return" , Expr ;
 // ExprStatement ::= Expr ;
 //
+// IfStatement ::= "if" , Expr , ":" , Block , ( ElifStatement | [ ElseBlock ] ) ;
+// ElifStatement ::= "elif" , Expr , ":" , Block ( ElifStatement | [ ElseBlock ] ) ;
+// ElseBlock ::= "else" , ":" , Block ;
 // WhileStatement ::= "while" , Expr , ":" , Block ;
 //
 // Block ::= NewLine , Indent , Statements , Dedent ;
@@ -78,6 +81,19 @@ pub enum StmtKind {
         expr: Node,
         block: Node,
     },
+    If {
+        condition: Node,
+        consequent: Node,
+        alternative: Option<Node>,
+    },
+    Elif {
+        condition: Node,
+        consequent: Node,
+        alternative: Option<Node>,
+    },
+    Else {
+        block: Node,
+    },
     Block {
         statements: Vec<Node>,
     },
@@ -118,7 +134,7 @@ fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 const SIMPLE_STMTS: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];
-const COMPOUND_STMTS: &[RawParserRule] = &[stmt_while];
+const COMPOUND_STMTS: &[RawParserRule] = &[stmt_while, stmt_if];
 
 fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
@@ -198,6 +214,31 @@ fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
         new_node_vec(NodeKind::Stmt(StmtKind::While {
             expr: nodes.clone().into_iter().nth(1)?,
             block: nodes.into_iter().nth(2)?,
+        })),
+        input,
+    ))
+}
+
+fn stmt_if(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+    // TODO: Add support for `elif`
+    let Some((nodes, input)) = sequence(vec![
+        named_ident("if"),
+        wrap(expr),
+        token(TokenKind::Colon),
+        wrap(stmt_block),
+        optional(sequence(vec![
+            named_ident("else"),
+            token(TokenKind::Colon),
+            wrap(stmt_block),
+        ]))
+    ])(input)
+    else { return None; };
+
+    Some((
+        new_node_vec(NodeKind::Stmt(StmtKind::If {
+            condition: nodes.clone().into_iter().nth(1)?,
+            consequent: nodes.clone().into_iter().nth(2)?,
+            alternative: nodes.into_iter().nth(4),
         })),
         input,
     ))

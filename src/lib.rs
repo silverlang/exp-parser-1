@@ -142,9 +142,7 @@ type ParserRule<'a> = Box<dyn Fn(&[Token]) -> Option<(Vec<Node>, &[Token])> + 'a
 
 pub fn parse(input: &[Token]) -> Option<Node> {
     Some(Node {
-        kind: Box::new(NodeKind::Program(
-            collect_until_no_match(wrap(stmt))(input)?.0,
-        )),
+        kind: Box::new(NodeKind::Program(many(wrap(stmt))(input)?.0)),
     })
 }
 
@@ -157,7 +155,7 @@ fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
             ]),
             any(wrap_many(COMPOUND_STMTS))
         ]),
-        optional(collect_until_no_match(token(TokenKind::NL)))
+        optional(many(token(TokenKind::NL)))
     ])(input)
     else { return None; };
 
@@ -279,7 +277,7 @@ fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
         token(TokenKind::NewLine),
         token(TokenKind::Indent),
-        collect_until_no_match(wrap(stmt)),
+        many(wrap(stmt)),
         token(TokenKind::Dedent),
     ])(input)
     else { return None; };
@@ -400,11 +398,11 @@ fn named_ident(str: &str) -> ParserRule {
     })
 }
 
-fn collect_until_no_match(rule: ParserRule) -> ParserRule {
-    Box::new(move |input| collect_until_no_match_body(input, &rule, Vec::new()))
+fn many(rule: ParserRule) -> ParserRule {
+    Box::new(move |input| many_body(input, &rule, Vec::new()))
 }
 
-fn collect_until_no_match_body<'a>(
+fn many_body<'a>(
     input: &'a [Token],
     rule: &ParserRule,
     nodes: Vec<Node>,
@@ -418,7 +416,7 @@ fn collect_until_no_match_body<'a>(
 
     let nodes = [nodes, new_nodes].concat();
 
-    collect_until_no_match_body(input, rule, nodes)
+    many_body(input, rule, nodes)
 }
 
 fn consume_first<T>(arr: &[T]) -> &[T] {

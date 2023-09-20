@@ -105,10 +105,10 @@ fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
         any(vec![
             sequence(vec![
-                any(wrap_many(SIMPLE_STMT_RULES)),
+                any(wrap_many(SIMPLE_STMTS)),
                 token(TokenKind::NewLine)
             ]),
-            any(wrap_many(COMPOUND_STMT_RULES))
+            any(wrap_many(COMPOUND_STMTS))
         ]),
         optional(collect_until_no_match(token(TokenKind::NL)))
     ])(input)
@@ -117,8 +117,8 @@ fn stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     Some((vec![nodes.into_iter().nth(0)?], input))
 }
 
-const SIMPLE_STMT_RULES: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];
-const COMPOUND_STMT_RULES: &[RawParserRule] = &[stmt_while];
+const SIMPLE_STMTS: &[RawParserRule] = &[stmt_assignment, stmt_return, stmt_expr];
+const COMPOUND_STMTS: &[RawParserRule] = &[stmt_while];
 
 fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = sequence(vec![
@@ -219,10 +219,10 @@ fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
-    any(wrap_many(EXPR_RULES))(input)
+    any(wrap_many(EXPRS))(input)
 }
 
-const EXPR_RULES: &[RawParserRule] = &[expr_ident, expr_intlit, expr_strlit];
+const EXPRS: &[RawParserRule] = &[expr_ident, expr_intlit, expr_strlit];
 
 fn expr_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::Identifier(name) = &input.first()?.kind

@@ -232,7 +232,7 @@ fn consume_first<T>(arr: &[T]) -> &[T] {
 }
 
 fn box_rule(rule: &'static RawParserRule) -> ParserRule<'static> {
-    Box::new(|input| rule(input))
+    Box::new(rule)
 }
 
 fn box_rules(rules: &'static [RawParserRule]) -> Vec<ParserRule<'static>> {

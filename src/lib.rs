@@ -53,7 +53,7 @@ impl Node {
     }
 }
 
-fn new_node_vec(kind: NodeKind) -> Vec<Node> {
+fn node_vec(kind: NodeKind) -> Vec<Node> {
     vec![Node::from(kind)]
 }
 
@@ -145,7 +145,7 @@ fn stmt_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        new_node_vec(NodeKind::Stmt(StmtKind::Return {
+        node_vec(NodeKind::Stmt(StmtKind::Return {
             expr: nodes.into_iter().nth(1)?,
         })),
         input,
@@ -180,7 +180,7 @@ fn stmt_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     };
 
     Some((
-        new_node_vec(NodeKind::Stmt(StmtKind::Assignment {
+        node_vec(NodeKind::Stmt(StmtKind::Assignment {
             name,
             expr: nodes.into_iter().last()?,
             type_annotation,
@@ -194,7 +194,7 @@ fn stmt_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        new_node_vec(NodeKind::Stmt(StmtKind::ExprStmt {
+        node_vec(NodeKind::Stmt(StmtKind::ExprStmt {
             expr: expr.into_iter().nth(0)?,
         })),
         input,
@@ -211,7 +211,7 @@ fn stmt_while(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        new_node_vec(NodeKind::Stmt(StmtKind::While {
+        node_vec(NodeKind::Stmt(StmtKind::While {
             expr: nodes.clone().into_iter().nth(1)?,
             block: nodes.into_iter().nth(2)?,
         })),
@@ -235,7 +235,7 @@ fn stmt_if(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        new_node_vec(NodeKind::Stmt(StmtKind::If {
+        node_vec(NodeKind::Stmt(StmtKind::If {
             condition: nodes.clone().into_iter().nth(1)?,
             consequent: nodes.clone().into_iter().nth(2)?,
             alternative: nodes.into_iter().nth(4),
@@ -254,7 +254,7 @@ fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     else { return None; };
 
     Some((
-        new_node_vec(NodeKind::Stmt(StmtKind::Block { statements: nodes })),
+        node_vec(NodeKind::Stmt(StmtKind::Block { statements: nodes })),
         input,
     ))
 }
@@ -271,7 +271,7 @@ fn expr_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let input = consume_first(input);
 
     Some((
-        new_node_vec(NodeKind::Expr(ExprKind::Identifier(name.to_string()))),
+        node_vec(NodeKind::Expr(ExprKind::Identifier(name.to_string()))),
         input,
     ))
 }
@@ -282,7 +282,7 @@ fn expr_strlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let input = consume_first(input);
 
     Some((
-        new_node_vec(NodeKind::Expr(ExprKind::StrLiteral(string.to_string()))),
+        node_vec(NodeKind::Expr(ExprKind::StrLiteral(string.to_string()))),
         input,
     ))
 }
@@ -294,7 +294,7 @@ fn expr_intlit(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 
     let number: u32 = int.parse().unwrap();
     Some((
-        new_node_vec(NodeKind::Expr(ExprKind::IntLiteral(number))),
+        node_vec(NodeKind::Expr(ExprKind::IntLiteral(number))),
         input,
     ))
 }

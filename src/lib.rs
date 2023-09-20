@@ -38,6 +38,10 @@ impl Node {
     }
 }
 
+fn new_node_vec(kind: NodeKind) -> Vec<Node> {
+    vec![Node::from(kind)]
+}
+
 #[derive(Debug, Clone)]
 pub enum NodeKind {
     Stmt(StmtKind),
@@ -59,8 +63,8 @@ pub enum ExprKind {
     StrLiteral(String),
 }
 
-type RawParserRule = fn(input: &[Token]) -> Option<(Node, &[Token])>;
-type ParserRule<'a> = Box<dyn Fn(&[Token]) -> Option<(Node, &[Token])> + 'a>;
+type RawParserRule = fn(input: &[Token]) -> Option<(Vec<Node>, &[Token])>;
+type ParserRule<'a> = Box<dyn Fn(&[Token]) -> Option<(Vec<Node>, &[Token])> + 'a>;
 
 pub fn parse(input: &[Token]) -> Node {
     Node {
@@ -81,12 +85,12 @@ fn parse_body<'a>(input: &'a [Token], nodes: Vec<Node>) -> Vec<Node> {
 
     let (node, input) = stmt_res.unwrap();
 
-    let nodes = [nodes, vec![node]].concat();
+    let nodes = [nodes, node].concat();
 
     parse_body(input, nodes)
 }
 
-fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((stmt, input)) = any(box_rules(STMT_RULES))(input)
     else { return None; };
 
@@ -99,17 +103,22 @@ fn rule_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
 
 const STMT_RULES: &[RawParserRule] = &[rule_assignment, rule_return, rule_expr_stmt];
 
-fn rule_return(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_return(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((_, input)) = ident_of_str("return")(input)
     else { return None; };
 
     let Some((expr, input)) = rule_expr(input)
     else { return None; };
 
-    Some((Node::from(NodeKind::Stmt(StmtKind::Return { expr })), input))
+    Some((
+        new_node_vec(NodeKind::Stmt(StmtKind::Return {
+            expr: expr.first()?.clone(),
+        })),
+        input,
+    ))
 }
 
-fn rule_assignment(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_assignment(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::Identifier(name) = &input[0].kind
     else { return None; };
     let input = consume_first(input);
@@ -122,60 +131,62 @@ fn rule_assignment(input: &[Token]) -> Option<(Node, &[Token])> {
     else { return None; };
 
     Some((
-        Node::from(NodeKind::Stmt(StmtKind::Assignment {
+        new_node_vec(NodeKind::Stmt(StmtKind::Assignment {
             name: name.to_string(),
-            expr,
+            expr: expr.first()?.clone(),
         })),
         input,
     ))
 }
 
-fn rule_expr_stmt(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_expr_stmt(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((expr, input)) = rule_expr(input)
     else { return None; };
 
     Some((
-        Node::from(NodeKind::Stmt(StmtKind::ExprStmt { expr })),
+        new_node_vec(NodeKind::Stmt(StmtKind::ExprStmt {
+            expr: expr.first()?.clone(),
+        })),
         input,
     ))
 }
 
-fn rule_expr(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     any(box_rules(EXPR_RULES))(input)
 }
 
 const EXPR_RULES: &[RawParserRule] = &[rule_ident, rule_intliteral, rule_stringliteral];
 
-fn rule_ident(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_ident(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::Identifier(name) = &input[0].kind
     else { return None; };
     let input = consume_first(input);
 
     Some((
-        Node::from(NodeKind::Expr(ExprKind::Identifier(name.to_string()))),
+        new_node_vec(NodeKind::Expr(ExprKind::Identifier(name.to_string()))),
         input,
     ))
 }
 
-fn rule_stringliteral(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_stringliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::StringLiteral(string) = &input[0].kind
     else { return None; };
     let input = consume_first(input);
 
     Some((
-        Node::from(NodeKind::Expr(ExprKind::StrLiteral(string.to_string()))),
+        new_node_vec(NodeKind::Expr(ExprKind::StrLiteral(string.to_string()))),
         input,
     ))
 }
 
-fn rule_intliteral(input: &[Token]) -> Option<(Node, &[Token])> {
+fn rule_intliteral(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let TokenKind::IntegerLiteral(int) = &input[0].kind
     else { return None; };
     let input = consume_first(input);
 
     let number: u32 = int.parse().unwrap();
     Some((
-        Node::from(NodeKind::Expr(ExprKind::IntLiteral(number))),
+        new_node_vec(NodeKind::Expr(ExprKind::IntLiteral(number))),
         input,
     ))
 }
@@ -189,7 +200,7 @@ fn ident_of_str(str: &str) -> ParserRule {
         let Some((expr, input)) = rule_ident(input)
         else { return None; };
 
-        let NodeKind::Expr(expr_kind) = &(*expr.kind)
+        let NodeKind::Expr(expr_kind) = &(*expr.first()?.clone().kind)
         else { unreachable!() };
 
         let ExprKind::Identifier(ident_str) = expr_kind

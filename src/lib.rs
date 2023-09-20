@@ -66,6 +66,8 @@ pub enum NodeKind {
     Stmt(StmtKind),
     Expr(ExprKind),
     Program(Vec<Node>),
+    // Only for capturing TokenKind, should never be in the actual AST
+    Token(TokenKind),
 }
 
 #[derive(Debug, Clone)]
@@ -290,7 +292,65 @@ fn stmt_block(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
 }
 
 fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
+    let Some((nodes, input)) = base_expr(input)
+    else { return None; };
+
+    println!("expr nodes: {:#?}", nodes);
+
+    bin_op(&nodes.into_iter().nth(0)?)(input)
+}
+
+fn base_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     any(wrap_many(EXPRS))(input)
+}
+
+fn bin_op<'a>(node: &'a Node) -> ParserRule<'a> {
+    Box::new(move |input| {
+        let Some((nodes, input)) = many(sequence(vec![
+            token_node(TokenKind::Plus),
+            any(vec![
+                wrap(base_expr)
+            ])
+        ]))(input)
+        else {
+            return Some((vec![node.to_owned()], input));
+        };
+
+        if nodes.len() == 0 {
+            return Some((vec![node.to_owned()], input));
+        }
+
+        println!("bin_op nodes: {:#?}", nodes);
+
+        Some((vec![attach_nodes(node.clone(), &nodes)], input))
+    })
+}
+
+fn attach_nodes(node: Node, nodes: &[Node]) -> Node {
+    println!("{:#?}", nodes);
+    let node = Node::from(NodeKind::Expr(ExprKind::Infix {
+        operator: InfixOp::Plus,
+        left: node.to_owned(),
+        right: nodes.into_iter().nth(1).unwrap().clone(),
+    }));
+
+    let nodes = consume_first(consume_first(&nodes));
+
+    attach_nodes_body(&node, &nodes)
+}
+
+fn attach_nodes_body(node: &Node, nodes: &[Node]) -> Node {
+    if let Some(right) = nodes.into_iter().nth(1) {
+        return attach_nodes_body(
+            &Node::from(NodeKind::Expr(ExprKind::Infix {
+                operator: InfixOp::Plus,
+                left: node.to_owned(),
+                right: right.clone(),
+            })),
+            consume_first(consume_first(nodes)),
+        );
+    }
+    node.clone()
 }
 
 const EXPRS: &[RawParserRule] = &[expr_ident, expr_intlit, expr_strlit, expr_prefix];
@@ -354,6 +414,15 @@ fn token<'a>(token_kind: TokenKind) -> ParserRule<'a> {
         let input = consume_first(input);
 
         Some((Vec::new(), input))
+    })
+}
+
+fn token_node<'a>(token_kind: TokenKind) -> ParserRule<'a> {
+    Box::new(move |input| {
+        let Some((_, input)) = token(token_kind.clone())(input)
+        else { return None; };
+
+        Some((vec![Node::from(NodeKind::Token(token_kind.clone()))], input))
     })
 }
 

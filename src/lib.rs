@@ -295,17 +295,21 @@ fn expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     let Some((nodes, input)) = base_expr(input)
     else { return None; };
 
-    bin_op(&nodes.into_iter().nth(0)?)(input)
+    // TODO: Implement operator precedence
+    bin_op(
+        &nodes.into_iter().nth(0)?,
+        vec![TokenKind::Plus, TokenKind::Minus],
+    )(input)
 }
 
 fn base_expr(input: &[Token]) -> Option<(Vec<Node>, &[Token])> {
     any(wrap_many(EXPRS))(input)
 }
 
-fn bin_op<'a>(node: &'a Node) -> ParserRule<'a> {
+fn bin_op<'a>(node: &'a Node, token_ops: Vec<TokenKind>) -> ParserRule<'a> {
     Box::new(move |input| {
         let Some((nodes, input)) = many(sequence(vec![
-            token_node(TokenKind::Plus),
+            any_token_node(&token_ops),
             any(vec![
                 wrap(base_expr)
             ])
@@ -323,8 +327,19 @@ fn bin_op<'a>(node: &'a Node) -> ParserRule<'a> {
 }
 
 fn attach_nodes(node: Node, nodes: &[Node]) -> Node {
+    let operator = match *nodes.into_iter().nth(0).unwrap().clone().kind {
+        NodeKind::Token(token_kind) => match token_kind {
+            TokenKind::Plus => InfixOp::Plus,
+            TokenKind::Minus => InfixOp::Minus,
+            TokenKind::Star => InfixOp::Multiply,
+            TokenKind::Slash => InfixOp::Divide,
+            _ => panic!("Wrong token kind"),
+        },
+        _ => panic!("Wrong node kind"),
+    };
+
     let node = Node::from(NodeKind::Expr(ExprKind::Infix {
-        operator: InfixOp::Plus,
+        operator,
         left: node.to_owned(),
         right: nodes.into_iter().nth(1).unwrap().clone(),
     }));
@@ -407,6 +422,20 @@ fn token_node<'a>(token_kind: TokenKind) -> ParserRule<'a> {
         else { return None; };
 
         Some((vec![Node::from(NodeKind::Token(token_kind.clone()))], input))
+    })
+}
+
+fn any_token_node<'a>(token_kinds: &'a [TokenKind]) -> ParserRule<'a> {
+    Box::new(move |input| {
+        let Some((nodes, input)) = any(
+            token_kinds.clone().into_iter().map(|kind| token_node(kind.clone())).collect()
+        )(input)
+        else { return None; };
+
+        let NodeKind::Token(kind) = *nodes.into_iter().nth(0).unwrap().kind
+        else { unreachable!() };
+
+        Some((vec![Node::from(NodeKind::Token(kind))], input))
     })
 }
 

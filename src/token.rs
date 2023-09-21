@@ -5,7 +5,7 @@ pub struct Token {
     pub kind: TokenKind,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
     Identifier(String),
     IntegerLiteral(String),
